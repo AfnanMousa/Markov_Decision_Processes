@@ -1,6 +1,7 @@
+import numpy as np
 class MDPProcess:
     # the main grid is :
-    # 0 1 2
+    # 100 1 2
     # 3 4 5
     # 6 7 8
     def __init__(self, reward, discount_factor=0.99):
@@ -59,21 +60,32 @@ class MDPProcess:
             return True
         else: return False
 
-    def break_condition(self, V_K_new, V_k_old, state, epsilon):
-        temp_new_value, temp_new_direction = V_K_new[state]
-        temp_old_value, temp_old_direction = 0, 'None'
-        if state in V_k_old:
-            temp_old_value, temp_old_direction = V_k_old[state]
+    def break_condition(self, V_K_new, V_K_old, epsilon):
+        temp_new_value = 0
+        temp_old_value = 0
+        for key in V_K_new:
+            value, direction = V_K_new[key]
+            temp_new_value +=value
+        for key in V_K_old:
+            value, direction = V_K_old[key]
+            temp_old_value +=value
         if abs(temp_new_value - temp_old_value) > epsilon:
             epsilon = abs(temp_new_value - temp_old_value)
         return epsilon
+    def check_stability(self, Q_star):
+        for key in Q_star:
+            value = Q_star[key]
+            if(value != -1):
+                return True
+        return False
 
     def value_iteration(self, k_iteration):
-        i = 0
+        iteration = 0
         V_k_old = {}
         V_K_new = {}
-        while i < k_iteration:
-            print(i)
+        while iteration < k_iteration:
+            print(iteration)
+            V_K_new = {}
             for state in range(9):
                 epsilon = 0
                 Q_star = {'right': 0, 'left': 0, 'up': 0, 'down': 0}  # dictionary connect the direction and the values of Q*.
@@ -88,26 +100,72 @@ class MDPProcess:
                                 V_datsh, temp = V_k_old[new_state]
                             Q_star[direction] += self.transitions[(state, new_state, direction)]*(self.reward[new_state] + self.discount_factor * V_datsh )
                 max_Q_direction = max(Q_star, key=Q_star.get) # get the max key indicate up, down, right, left.
-                if self.is_terminal(state):
+
+                if self.is_terminal(state) or not(self.check_stability(Q_star)):
                     V_K_new[state] = (Q_star[max_Q_direction], 'None')
                 else:
                     V_K_new[state] = (Q_star[max_Q_direction], max_Q_direction)
 
-                epsilon = self.break_condition(V_K_new, V_k_old, state, epsilon)
-                V_k_old[state] = V_K_new[state]
-                print("convergence ", ((1 - self.discount_factor) / (self.discount_factor)), " delta ", epsilon)
-                if epsilon < ((1 - self.discount_factor)/(self.discount_factor )) and epsilon != 0:
-                    return V_K_new
-            i +=1
+            epsilon = self.break_condition(V_K_new, V_k_old, epsilon)
+            V_k_old = V_K_new
+            print("stability ", ((1 - self.discount_factor) / (self.discount_factor)), " epsilon ", epsilon)
+            if epsilon < ((1 - self.discount_factor)/(self.discount_factor )) and epsilon != 0:
+                return V_K_new
+            iteration +=1
         return V_K_new
 
-    # def policy_iteration(self):
+
+    def policy_iteration(self, k_iteration):
+        policy = [0,'right',0,'up','up','up','up','up','up']
+        old_V = [0,0,0,0,0,0,0,0,0]
+        new_V = [0,0,0,0,0,0,0,0,0]
+        iterations = 0
+        while iterations < k_iteration:
+            is_value_changed = False
+            iterations += 1
+            old_V = new_V
+            new_V = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+            # run value iteration for each state
+            for state in range(9):
+                for new_state in range(9):
+                    if (state, new_state,policy[state]) in self.transitions:
+                        print(self.discount_factor * old_V[new_state])
+                        new_V[state] += self.transitions[(state, new_state, policy[state])] * (self.reward[new_state] + (self.discount_factor * old_V[new_state]))
 
 
-# rewards = [100, -1, 10, -1, -1, -1, -1, -1, -1]
-# temp_class = MDPProcess(rewards)
+            for state in range(9):
+                Q_star = [0,0,0,0]
+                q_sa = 0
+                for direction in self.action_directions:
+                    for new_state in range(9):
+                        if (state, new_state, direction) in self.transitions:
+                            Q_star[q_sa] += self.transitions[(state, new_state, direction)] * (self.reward[new_state] + self.discount_factor * new_V[new_state])
+                    q_sa += 1
+                    # if q_sa > q_best:
+                    #     # print
+                    #     # "State", s, ": q_sa", q_sa, "q_best", q_best
+                    #     policy[state] = direction
+                    #     q_best = q_sa
+                    #     is_value_changed = True
+                    # else:
+                    #     return policy
+                if (policy[state] != 0):
+                    if (policy[state] != self.action_directions[np.argmax(Q_star)]) or self.is_terminal(state):
+                        is_value_changed = True
+                    policy[state] = self.action_directions[np.argmax(Q_star)]
+                else:
+                    is_value_changed = True
+                if(not is_value_changed):
+                    return policy
+            print("Iterations:", iterations)
+
+        return policy
+
+
+rewards = [100, -1, 10, -1, -1, -1, -1, -1, -1]
+temp_class = MDPProcess(rewards)
 # # print(temp_class.transitions)
 #
-# print(temp_class.value_iteration(100))
+print(temp_class.policy_iteration(100))
 # dic_t = {}
 # print(dic_t['shimaa'])
