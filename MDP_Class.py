@@ -78,17 +78,16 @@ class MDPProcess:
                 epsilon = 0
                 Q_star = {'right': 0, 'left': 0, 'up': 0, 'down': 0}  # dictionary connect the direction and the values of Q*.
                 for direction in self.action_directions:
-                    for new_state in range(9):
-                    # for new_state in self.validate(self.state_directions(state)):
+                    # for new_state in range(9):
+                    list_new_states = self.validate(self.state_directions(state))
+                    list_new_states.append(state)
+                    for new_state in list_new_states:
                         if (state, new_state, direction) in self.transitions:
                             V_datsh = 0
                             if new_state in V_k_old:
                                 V_datsh, temp = V_k_old[new_state]
-                            # print(self.transitions[(state, new_state, direction)])
-                            # print(self.reward[new_state])
-                            # print(self.discount_factor * V_datsh)
                             Q_star[direction] += self.transitions[(state, new_state, direction)]*(self.reward[new_state] + self.discount_factor * V_datsh )
-                max_Q_direction = max(Q_star, key=Q_star.get) #get the max key indicate up, down, right, left.
+                max_Q_direction = max(Q_star, key=Q_star.get) # get the max key indicate up, down, right, left.
                 if self.is_terminal(state):
                     V_K_new[state] = (Q_star[max_Q_direction], 'None')
                 else:
@@ -96,16 +95,19 @@ class MDPProcess:
 
                 epsilon = self.break_condition(V_K_new, V_k_old, state, epsilon)
                 V_k_old[state] = V_K_new[state]
-                print("convergence ", (1 - self.discount_factor) / (self.discount_factor), " delta ", epsilon)
-                if (epsilon < ((1 - self.discount_factor)/(self.discount_factor))) and epsilon != 0:
+                print("convergence ", ((1 - self.discount_factor) / (self.discount_factor)), " delta ", epsilon)
+                if epsilon < ((1 - self.discount_factor)/(self.discount_factor )) and epsilon != 0:
                     return V_K_new
             i +=1
         return V_K_new
 
-rewards = [3, -1, 10, -1, -1, -1, -1, -1, -1]
-temp_class = MDPProcess(rewards)
-# print(temp_class.transitions)
+    # def policy_iteration(self):
 
-print(temp_class.value_iteration(100))
+
+# rewards = [100, -1, 10, -1, -1, -1, -1, -1, -1]
+# temp_class = MDPProcess(rewards)
+# # print(temp_class.transitions)
+#
+# print(temp_class.value_iteration(100))
 # dic_t = {}
 # print(dic_t['shimaa'])
